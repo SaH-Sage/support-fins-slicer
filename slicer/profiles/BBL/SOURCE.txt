@@ -1,0 +1,3 @@
+Copied from OrcaSlicer (https://github.com/OrcaSlicer/OrcaSlicer)
+commit af931e65fc539bd449d8158d89877920b0a09792, resources/profiles/BBL/
+License: AGPL-3.0. Only the files the recipes in build.py reach are kept.

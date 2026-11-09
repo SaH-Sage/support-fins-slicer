@@ -45,3 +45,6 @@ plugins/rhino/build/
 plugins/prusa/build/
 # user-reported parts (other people's files): measured locally, never committed
 prototype/examples/reports/
+
+# slicer engine: downloaded by slicer/fetch-engine.py, never committed
+web/slicer/engine/

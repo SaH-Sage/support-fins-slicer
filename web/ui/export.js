@@ -106,7 +106,7 @@ function parkedGeometry(m, plate, shown) {
 }
 
 /** `g` (buildExportGeometry) moved to `xy`, its model's spot on the plate. */
-function placed(g, [x, y]) {
+export function placed(g, [x, y]) {
   const at = (tris) => tris.map((p) => { const q = p.slice(); q[0] += x; q[1] += y; return q; });
   const slicer = g.slicer && { ...g.slicer, partTris: at(g.slicer.partTris),
     extras: g.slicer.extras.map((e) => ({ ...e, tris: at(e.tris) })) };
@@ -139,7 +139,7 @@ export function plateGeometry(plate = currentPlate()) {
 
 /** The plate being edited the old way, each model made live in turn to build it
  *  (when its parked builds would not settle). */
-async function plateGeometryLive() {
+export async function plateGeometryLive() {
   return (await eachModel((xy) => {
     const g = buildExportGeometry();
     return g && placed(g, xy);

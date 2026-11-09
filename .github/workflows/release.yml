@@ -42,7 +42,8 @@ concurrency:
 jobs:
   publish:
     # a run from another ref would release it
-    if: github.ref == 'refs/heads/main'
+    # support-fins-slicer fork: releases and Docker images come from the upstream repository only
+    if: github.repository == 'gittrahan/support-fins' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

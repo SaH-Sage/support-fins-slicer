@@ -348,7 +348,8 @@ jobs:
           if-no-files-found: error
 
   publish:
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' || inputs.tag != ''
+    # support-fins-slicer fork: publish only from the upstream repository (no plugin releases under the fork)
+    if: github.repository == 'gittrahan/support-fins' && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' || inputs.tag != '')
     needs: [orca, fusion, cura, prusa, blender, blender-smoke, freecad, cli, mcp, solidworks]
     runs-on: ubuntu-latest
     timeout-minutes: 5

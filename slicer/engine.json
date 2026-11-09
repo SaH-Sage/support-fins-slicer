@@ -1,0 +1,15 @@
+{
+  "about": "The OrcaSlicer 2.4.2 WebAssembly engine, single-threaded build, from OrcaWeb's releases. Pinned: later OrcaWeb releases changed the engine's API (orc_* -> onewasm_*/oneslicer_*) and the newest need cross-origin isolation, which GitHub Pages can't provide. slicer/fetch-engine.sh downloads these exact files into web/slicer/engine/ and checks them.",
+  "release": "https://github.com/Hiosdra/OrcaWeb/releases/tag/wasm-v2.4.2-patch17",
+  "files": {
+    "slicer.js": {
+      "url": "https://github.com/Hiosdra/OrcaWeb/releases/download/wasm-v2.4.2-patch17/slicer.js",
+      "sha256": "dc377dfcbb0dfecfcf753170830476cf93f270329d20065036213dc7473941d4"
+    },
+    "slicer.wasm": {
+      "url": "https://github.com/Hiosdra/OrcaWeb/releases/download/wasm-v2.4.2-patch17/slicer.wasm",
+      "sha256": "1a3c6fc7197f6029207410297e27a93ab4c1bb2f9b72745162052ba42236187c"
+    }
+  },
+  "license": "AGPL-3.0 (OrcaSlicer / OrcaWeb)"
+}

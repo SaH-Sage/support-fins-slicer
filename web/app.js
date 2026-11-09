@@ -29,6 +29,8 @@ import { loadURL } from './ui/io.js';
 import { applyVolume } from './ui/volume.js';
 import { buildExportGeometry } from './ui/export.js';
 import './ui/plugins.js';
+// Slicing for a chosen printer (this fork's addition; everything it needs is in web/slicer/)
+import './slicer/panel.js';
 import './ui/whatsnew.js';
 import './ui/calibrate.js';
 import './ui/topbar.js';

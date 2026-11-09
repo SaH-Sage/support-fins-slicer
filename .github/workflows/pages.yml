@@ -1,0 +1,48 @@
+# support-fins-slicer: publish web/ to GitHub Pages, with the slicer engine.
+# Settings -> Pages -> Source: "GitHub Actions". The site is then at
+# https://<owner>.github.io/<repository>/
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    # this fork's site only (upstream deploys printfins.com through Cloudflare)
+    if: github.repository != 'gittrahan/support-fins'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # The printer files must match the vendored profiles they're built from.
+      - name: Check printer profiles are current
+        run: |
+          python3 slicer/profiles/test_build.py
+          python3 slicer/profiles/build.py
+          git diff --exit-code -- web/slicer/printers
+      # The pinned engine (slicer/engine.json), checksum-verified. Not in git: 37 MB.
+      - name: Fetch slicer engine
+        run: python3 slicer/fetch-engine.py
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,3 +1,8 @@
+> **This is Support Fins Slicer**, a fork of [gittrahan/support-fins](https://github.com/gittrahan/support-fins)
+> that adds slicing in the browser: pick a printer, slice the plate, save the file for the
+> printer's USB stick. See [slicer/README.md](slicer/README.md). Everything below is the
+> original project's README.
+
 # Support Fins
 
 **Tip a part on edge, and Support Fins adds the breakaway support fins that make that

@@ -1,0 +1,9 @@
+{
+ "printers": [
+  {
+   "id": "bambu-x2d-0.4",
+   "label": "Bambu Lab X2D (0.4 mm nozzle)",
+   "file": "bambu-x2d-0.4.json"
+  }
+ ]
+}
