@@ -24,7 +24,7 @@ The first slice downloads the engine (about 37 MB); the browser keeps it after t
 
 | Printer | Notes |
 |---|---|
-| Bambu Lab X2D, 0.4 mm nozzle | Main (left, direct-drive) nozzle only. Five qualities (0.08–0.24 mm), Bambu PLA Basic, PLA, Bambu PETG HF, PETG, TPU; textured or smooth PEI plate. |
+| Bambu Lab X2D, 0.4 mm nozzle | Nozzle 1 (the direct-drive one, filament 1 in Bambu Studio) only. Five qualities (0.08–0.24 mm), Bambu PLA Basic, PLA, Bambu PETG HF, PETG, TPU; textured or smooth PEI plate. |
 
 ### Before the first real print
 
@@ -41,9 +41,13 @@ placeholders that Bambu's G-code uses but the OrcaSlicer 2.4.2 engine predates a
 filled with the values OrcaSlicer 2.5 gives a one-filament, main-nozzle print, and the
 timelapse block (camera only) is left out.
 
-Checked against a cube Bambu Studio 2.9.1 sliced for an X2D: the start sequence
-matches it line for line, apart from values that depend on the model, the first
-filament and which nozzle it is on. All settings the two slicers share were compared
+Checked against cubes Bambu Studio 2.9.1 sliced for an X2D (one cube on nozzle 1,
+two cubes, and a two-colour cube): for the same cube on nozzle 1, the start and end
+sequences match line for line apart from progress lines (M73), a slightly larger
+bed-levelling area, and two "fans off" lines at the start; skip-object markers for
+two objects are identical. Print speeds and accelerations match too; the time
+estimate on the printer runs longer than Bambu Studio's (about 23 vs 17 minutes for
+a 25.6 mm cube) because the two slicers estimate differently. All settings the two slicers share were compared
 too; where OrcaSlicer's profile differed in a way that changes how the printer moves
 (absolute instead of relative extrusion, arc fitting), the recipe sets Bambu
 Studio's value.

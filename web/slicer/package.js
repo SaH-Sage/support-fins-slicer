@@ -94,7 +94,7 @@ const modelSettings = (ext, big) => `<?xml version="1.0" encoding="UTF-8"?>
     <metadata key="plater_id" value="1"/>
     <metadata key="plater_name" value=""/>
     <metadata key="locked" value="false"/>
-    <metadata key="filament_map_mode" value="Manual"/>
+    <metadata key="filament_map_mode" value="Auto For Flush"/>
     <metadata key="filament_maps" value="${ext}"/>
     <metadata key="filament_volume_maps" value="0"/>
     <metadata key="gcode_file" value="Metadata/plate_1.gcode"/>${big ? `
@@ -172,6 +172,9 @@ function sliceInfo({ printer, filament, stats, objects, color }) {
     `    <metadata key="first_layer_time" value="${stats.firstLayerSeconds.toFixed(6)}"/>`,
     '    <metadata key="outside" value="false"/>',
     '    <metadata key="support_used" value="false"/>',
+    // true even for one object: the engine always writes skip-object markers
+    // (M624/M625), and this says so. Bambu Studio leaves both out for a single
+    // object and writes both for several (checked against its X2D files).
     '    <metadata key="label_object_enabled" value="true"/>',
     '    <metadata key="support_material_on_wipe_tower" value="false"/>',
     '    <metadata key="enable_filament_dynamic_map" value="false"/>',
@@ -185,6 +188,10 @@ function sliceInfo({ printer, filament, stats, objects, color }) {
       + `group_id="${ext - 1}" nozzle_diameter="${Number(phys.nozzle_diameter[ext - 1] ?? printer.nozzle).toFixed(2)}" volume_type="Standard" `
       + 'used_for_object="true" used_for_support="false" directly_used="true" total_load_time="0.00" total_unload_time="0.00"/>',
     `    <nozzle id="${ext - 1}" extruder_id="${ext}" nozzle_diameter="${xml(phys.nozzle_diameter[ext - 1] ?? printer.nozzle)}" volume_type="Standard"/>`,
+    // which filament each layer uses: the one filament, every layer
+    '    <layer_filament_lists>',
+    `      <layer_filament_list filament_list="0" layer_ranges="0 ${Math.max(0, stats.layers - 1)}" />`,
+    '    </layer_filament_lists>',
     '  </plate>',
     '</config>',
   ];

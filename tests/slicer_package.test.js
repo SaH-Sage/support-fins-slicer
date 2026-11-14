@@ -74,6 +74,7 @@ Deno.test('writeGcode3mf: Bambu sliced-3MF layout, MD5 of the G-code, X2D printe
   }
   assert(info.includes('key="X-BBL-Client-Version" value="02.09.01.70"'));
   assert(info.includes('nozzle_diameter="0.40"'));
+  assert(info.includes('<layer_filament_list filament_list="0" layer_ranges="0 394" />'));   // 395 layers
   assert(dec.decode(get('_rels/.rels').data).includes('/Metadata/plate_1_small.png'));
   assert(dec.decode(get('Metadata/model_settings.config').data).includes('key="gcode_file" value="Metadata/plate_1.gcode"'));
   const pj = JSON.parse(dec.decode(get('Metadata/plate_1.json').data));
