@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Build the slicer's printer files (web/slicer/printers/*.json) from OrcaSlicer
-vendor profiles.
+vendor profiles (and, where a recipe says so, Bambu Studio's G-code templates).
 
     python3 slicer/profiles/build.py                      # rebuild from the vendored profiles
     python3 slicer/profiles/build.py --vendor-from ORCA   # refresh the vendored source files
                                                           # from an OrcaSlicer checkout first
+    python3 slicer/profiles/build.py --templates-from BAMBU_STUDIO
+                                                          # refresh the G-code templates from a
+                                                          # Bambu Studio checkout at the recipe's tag
 
 Each printer is described by a recipe (RECIPES below): one machine profile, the
 process (quality) presets and the filament presets students may pick. For each
@@ -18,8 +21,9 @@ one this script
      {"printer": {...}, "machine": {...}, "processes": [...], "filaments": [...]}.
 
 Only the profile files a recipe actually reaches are vendored, under
-slicer/profiles/<vendor>/, with the OrcaSlicer commit they came from in SOURCE.txt.
-They are AGPL-3.0 like OrcaSlicer (see NOTICE.md).
+slicer/profiles/<vendor>/, with the OrcaSlicer commit they came from in SOURCE.txt;
+Bambu Studio templates go under the recipe's templates dir with their tag. Both are
+AGPL-3.0 (see slicer/LICENSE-AGPL-3.0.txt).
 """
 from __future__ import annotations
 
@@ -49,6 +53,13 @@ RECIPES = [
         # second nozzle's support material).
         "extruder": 1,
         "variant": "Direct Drive Standard",
+        # The G-code templates (start, end, layer change, filament change,
+        # timelapse) come from Bambu Studio itself, not OrcaSlicer's copy: Bambu
+        # updates them with its firmware (2.9.1's start G-code adds input-shaping
+        # and noise-reduction steps OrcaSlicer's June copy lacks). Checked
+        # byte-for-byte against a plate Bambu Studio 2.9.1 sliced for an X2D.
+        "templates": {"dir": "BBL-BambuStudio", "repo": "https://github.com/bambulab/BambuStudio",
+                      "tag": "v02.09.01.70"},
         # Placeholders Bambu's X2D G-code uses that the OrcaSlicer 2.4.2 engine
         # predates (they arrived with multi-nozzle support in Orca 2.5). Each is
         # replaced by the value Orca 2.5's GCode.cpp computes for a print with
@@ -68,6 +79,22 @@ RECIPES = [
             # nozzle_diameter_at_nozzle_id[n] -> the one nozzle's diameter
             (r"nozzle_diameter_at_nozzle_id\[[a-z_0-9]+\]", "nozzle_diameter[0]"),
         ],
+        # Settings where OrcaSlicer's X2D profile leaves the engine on a different
+        # value from the one Bambu Studio 2.9.1 slices with (found by comparing
+        # the settings block of both slicers' G-code for the same cube).
+        "overrides": {
+            "machine": {
+                # Bambu Studio extrudes in relative mode (M83); OrcaSlicer's profile
+                # doesn't set this, so the 2.4.2 engine fell back to absolute (M82).
+                "use_relative_e_distances": "1",
+                # Klipper-only in OrcaSlicer; Bambu Studio's value, for parity.
+                "accel_to_decel_enable": "0",
+            },
+            "process": {
+                # Bambu Studio doesn't turn curves into G2/G3 arcs for the X2D.
+                "enable_arc_fitting": "0",
+            },
+        },
         # Templates left out. The timelapse block only runs when timelapse
         # recording is on at the printer (M1002 judge_flag timelapse_record_flag,
         # marked SKIPPABLE) and needs camera-position variables the 2.4.2 engine
@@ -173,13 +200,22 @@ DROP = {
 }
 
 
-def load_index(vendor_dir: Path) -> dict[str, tuple[Path, dict]]:
+def load_index(vendor_dir: Path, overlay: Path | None = None) -> dict[str, tuple[Path, dict]]:
+    """Every profile by name. Files in `overlay` replace same-named ones."""
     idx: dict[str, tuple[Path, dict]] = {}
-    for sub in ("machine", "process", "filament"):
-        for f in sorted((vendor_dir / sub).glob("*.json")):
-            j = json.loads(f.read_text(encoding="utf-8"))
-            idx[j.get("name", f.stem)] = (f, j)
+    for d in (vendor_dir, overlay):
+        if d is None:
+            continue
+        for sub in ("machine", "process", "filament"):
+            for f in sorted((d / sub).glob("*.json")):
+                j = json.loads(f.read_text(encoding="utf-8"))
+                idx[j.get("name", f.stem)] = (f, j)
     return idx
+
+
+def overlay_dir(recipe) -> Path | None:
+    t = recipe.get("templates")
+    return HERE / t["dir"] if t else None
 
 
 def chain(idx, name: str) -> list[tuple[Path, dict]]:
@@ -286,13 +322,15 @@ def adapt_gcode(text: str, placeholders: dict[str, str], rewrites) -> str:
 
 
 def build(recipe, vendor_dir: Path) -> tuple[dict, set[Path]]:
-    idx = load_index(vendor_dir)
+    idx = load_index(vendor_dir, overlay_dir(recipe))
     used: set[Path] = set()
 
     def get(name, kind):
         for f, _ in chain(idx, name):
             used.add(f)
-        return collapse_variants(resolve(idx, name), kind, recipe["variant"], recipe["extruder"])
+        cfg = collapse_variants(resolve(idx, name), kind, recipe["variant"], recipe["extruder"])
+        cfg.update(recipe.get("overrides", {}).get(kind, {}))
+        return cfg
 
     raw_machine = resolve(idx, recipe["machine"])
     machine = get(recipe["machine"], "machine")
@@ -355,6 +393,7 @@ def vendor_from(orca: Path):
         dst = HERE / recipe["vendor"]
         if dst.exists():
             shutil.rmtree(dst)
+        used = {f for f in used if f.is_relative_to(src)}     # not the overlay's files
         for f in sorted(used):
             rel = f.relative_to(src)
             (dst / rel.parent).mkdir(parents=True, exist_ok=True)
@@ -371,10 +410,42 @@ def vendor_from(orca: Path):
         print(f"vendored {len(used)} files -> {dst.relative_to(ROOT)}")
 
 
+def templates_from(bambu: Path):
+    """Copy each recipe's G-code template files (its machine's `include` list)
+    out of a Bambu Studio checkout, which must be at the recipe's tag."""
+    import subprocess
+    for recipe in RECIPES:
+        t = recipe.get("templates")
+        if not t:
+            continue
+        git = lambda *a: subprocess.run(["git", "-C", str(bambu), *a], capture_output=True, text=True)
+        at_tag = git("describe", "--tags", "--exact-match").stdout.strip()
+        if at_tag != t["tag"]:
+            raise SystemExit(f"{bambu} is at {at_tag or 'no tag'}, recipe {recipe['id']} wants {t['tag']}")
+        commit = git("rev-parse", "HEAD").stdout.strip()
+        src = bambu / "resources" / "profiles" / recipe["vendor"] / "machine"
+        machine = json.loads((src / f"{recipe['machine']}.json").read_text(encoding="utf-8"))
+        dst = HERE / t["dir"] / "machine"
+        if dst.parent.exists():
+            shutil.rmtree(dst.parent)
+        dst.mkdir(parents=True)
+        for inc in machine.get("include", []):
+            shutil.copy2(src / f"{inc}.json", dst / f"{inc}.json")
+        (dst.parent / "SOURCE.txt").write_text(
+            f"Copied from Bambu Studio ({t['repo']})\n"
+            f"tag {t['tag']} (commit {commit}), resources/profiles/{recipe['vendor']}/machine/\n"
+            f"The G-code templates of {recipe['machine']}; they replace OrcaSlicer's copies.\n"
+            f"License: AGPL-3.0.\n", encoding="utf-8")
+        print(f"vendored {len(machine.get('include', []))} templates -> {dst.relative_to(ROOT)}")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--vendor-from", type=Path, help="OrcaSlicer checkout to copy profiles from")
+    ap.add_argument("--templates-from", type=Path, help="Bambu Studio checkout (at the recipe's tag) to copy G-code templates from")
     a = ap.parse_args(argv)
+    if a.templates_from:
+        templates_from(a.templates_from)
     if a.vendor_from:
         vendor_from(a.vendor_from)
     OUT_DIR.mkdir(parents=True, exist_ok=True)

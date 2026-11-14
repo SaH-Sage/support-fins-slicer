@@ -1,0 +1,4 @@
+Copied from Bambu Studio (https://github.com/bambulab/BambuStudio)
+tag v02.09.01.70 (commit 56a57d00a591360cf41bf21383915ee5bf357be5), resources/profiles/BBL/machine/
+The G-code templates of Bambu Lab X2D 0.4 nozzle; they replace OrcaSlicer's copies.
+License: AGPL-3.0.

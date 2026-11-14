@@ -65,6 +65,11 @@ class BuiltPrinterFile(unittest.TestCase):
                          "nozzle_diameter_at_nozzle_id", "current_filament_id", "current_nozzle_id"):
                 self.assertNotIn(name, m.get(k, ""), f"{k} still uses {name}")
         self.assertEqual(m["time_lapse_gcode"], "")
+        # Bambu Studio 2.9.1's own templates and extrusion mode
+        self.assertIn(";===== 2026/10/20 =====", m["machine_start_gcode"])
+        self.assertIn("M975 S1", m["machine_start_gcode"])
+        self.assertEqual(m["use_relative_e_distances"], "1")
+        self.assertTrue(all(p["config"]["enable_arc_fitting"] == "0" for p in d["processes"]))
         self.assertTrue(all(f.get("tray_id", "").startswith("GF") for f in d["filaments"]))
         self.assertEqual(sum(p["default"] for p in d["processes"]), 1)
 

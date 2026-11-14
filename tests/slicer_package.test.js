@@ -49,13 +49,18 @@ Deno.test('writeGcode3mf: Bambu sliced-3MF layout, MD5 of the G-code, X2D printe
   const printer = { nozzle: 0.4, model_id: 'N6',
     physical: { extruder_type: ['Direct Drive', 'Bowden'], nozzle_diameter: ['0.4', '0.4'], extruder: 1 } };
   const filament = { tray_id: 'GFA00', config: { filament_type: ['PLA'] } };
-  const blob = writeGcode3mf({ gcode, thumbnail: new Uint8Array([137, 80, 78, 71]), printer, filament,
-    config: { layer_height: '0.2', nozzle_diameter: ['0.4'] }, stats: gcodeStats(gcode),
-    objects: [{ id: '22', name: 'bowl' }, { id: '21', name: 'dome <1>' }], title: 'test' });
+  const blob = writeGcode3mf({ gcode, thumbnail: new Uint8Array([137, 80, 78, 71]),
+    thumbnailSmall: new Uint8Array([137, 80, 78, 71, 1]), printer, filament,
+    config: { layer_height: '0.2', nozzle_diameter: ['0.4'], curr_bed_type: 'Textured PEI Plate' }, stats: gcodeStats(gcode),
+    objects: [{ id: '22', name: 'bowl' }, { id: '21', name: 'dome <1>' }],
+    plate: { objects: [{ name: 'bowl', bbox: [100, 100, 120, 130] }, { name: 'dome <1>', bbox: [140, 90, 160, 110] }] },
+    title: 'test' });
   const files = await unzip(new Uint8Array(await blob.arrayBuffer()));
   const get = (n) => (files.has(n) ? { data: files.get(n) } : null);   // unzip: Map name -> bytes
   for (const n of ['[Content_Types].xml', '_rels/.rels', '3D/3dmodel.model', 'Metadata/plate_1.gcode',
-    'Metadata/plate_1.gcode.md5', 'Metadata/plate_1.png', 'Metadata/slice_info.config', 'Metadata/project_settings.config']) {
+    'Metadata/plate_1.gcode.md5', 'Metadata/plate_1.png', 'Metadata/plate_1_small.png', 'Metadata/plate_1.json',
+    'Metadata/model_settings.config', 'Metadata/_rels/model_settings.config.rels', 'Metadata/slice_info.config',
+    'Metadata/project_settings.config']) {
     assert(get(n), `missing ${n}`);
   }
   const dec = new TextDecoder();
@@ -67,6 +72,15 @@ Deno.test('writeGcode3mf: Bambu sliced-3MF layout, MD5 of the G-code, X2D printe
     'key="filament_maps" value="1"', 'tray_info_idx="GFA00"', 'type="PLA"', 'identify_id="21" name="dome &lt;1&gt;"']) {
     assert(info.includes(s), `slice_info lacks ${s}`);
   }
+  assert(info.includes('key="X-BBL-Client-Version" value="02.09.01.70"'));
+  assert(info.includes('nozzle_diameter="0.40"'));
+  assert(dec.decode(get('_rels/.rels').data).includes('/Metadata/plate_1_small.png'));
+  assert(dec.decode(get('Metadata/model_settings.config').data).includes('key="gcode_file" value="Metadata/plate_1.gcode"'));
+  const pj = JSON.parse(dec.decode(get('Metadata/plate_1.json').data));
+  assertEquals(pj.bbox_all, [100, 90, 160, 130]);
+  assertEquals(pj.bed_type, 'textured_plate');
+  assertEquals(pj.first_extruder, 0);
+  assertEquals(pj.bbox_objects.map((o) => o.area), [600, 400]);
   const settings = JSON.parse(dec.decode(get('Metadata/project_settings.config').data));
   assertEquals(settings.layer_height, '0.2');
   assertEquals(settings.nozzle_diameter, ['0.4']);

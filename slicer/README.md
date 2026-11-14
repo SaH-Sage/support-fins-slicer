@@ -41,6 +41,13 @@ placeholders that Bambu's G-code uses but the OrcaSlicer 2.4.2 engine predates a
 filled with the values OrcaSlicer 2.5 gives a one-filament, main-nozzle print, and the
 timelapse block (camera only) is left out.
 
+Checked against a cube Bambu Studio 2.9.1 sliced for an X2D: the start sequence
+matches it line for line, apart from values that depend on the model, the first
+filament and which nozzle it is on. All settings the two slicers share were compared
+too; where OrcaSlicer's profile differed in a way that changes how the printer moves
+(absolute instead of relative extrusion, arc fitting), the recipe sets Bambu
+Studio's value.
+
 ## How it works
 
 ```
@@ -66,6 +73,11 @@ slicer/
   OrcaSlicer commit in `profiles/BBL/SOURCE.txt`). `build.py` resolves their
   inheritance, merges the G-code templates, and reduces the X2D's two-nozzle arrays to
   the main nozzle the way OrcaSlicer's `PrintConfig.cpp` indexes them.
+- **G-code templates:** from Bambu Studio itself (`profiles/BBL-BambuStudio/`, tag
+  `v02.09.01.70`), because Bambu updates them along with the printer's firmware. To
+  refresh: check out a newer Bambu Studio tag, change `tag` in the recipe, run
+  `build.py --templates-from /path/to/BambuStudio`, and compare against a plate that
+  version of Bambu Studio sliced.
 - **Fins:** the fins are baked into each model's mesh before slicing, exactly as the
   site's STL export does, so the slicer's own supports stay off.
 

@@ -366,10 +366,22 @@ function showResult() {
 
 async function save() {
   if (!result) return;
-  const thumbnail = await plateThumbnail(result.models).catch(() => null);
+  const [thumbnail, thumbnailSmall] = await Promise.all([512, 128].map((px) =>
+    plateThumbnail(result.models, px).catch(() => null)));
+  // each model's footprint on the bed, in bed coordinates (plate centre = bed centre)
+  const [bx, by] = printer.printer.bed;
+  const plate = { objects: result.models.map((m) => {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const p of m.tris.concat(m.fins)) {
+      if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0];
+      if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1];
+    }
+    const r = (v) => Math.round(v * 1000) / 1000;
+    return { name: m.name, bbox: [r(x0 + bx / 2), r(y0 + by / 2), r(x1 + bx / 2), r(y1 + by / 2)] };
+  }) };
   const blob = writeGcode3mf({
-    gcode: result.gcode, thumbnail, printer: printer.printer, filament: result.filament, config: result.config,
-    stats: result.stats, objects: result.objects, title: result.name,
+    gcode: result.gcode, thumbnail, thumbnailSmall, printer: printer.printer, filament: result.filament,
+    config: result.config, stats: result.stats, objects: result.objects, plate, title: result.name,
   });
   download(blob, `${result.name}.gcode.3mf`);
 }
