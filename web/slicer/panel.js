@@ -24,6 +24,7 @@ import { part, topology, lastResult } from '../ui/part.js';
 import { overlapping, arrange } from '../ui/arrange.js';
 import { gcodeStats, gcodeObjects, writeGcode3mf } from './package.js';
 import { plateThumbnail } from './thumb.js';
+import { openPreview } from './preview/preview.js';
 
 const BASE = new URL('./', import.meta.url);
 const STORE = 'sfs.slicer';
@@ -78,7 +79,10 @@ dlg.innerHTML = `
     <p class="sl-note err" id="sl-error" hidden></p>
     <div class="sl-result" id="sl-result" hidden>
       <p class="sl-stats" id="sl-stats"></p>
-      <button type="button" class="btn primary" id="sl-save">${t('Save for USB stick')}</button>
+      <div class="sl-actions">
+        <button type="button" class="btn primary" id="sl-save">${t('Save for USB stick')}</button>
+        <button type="button" class="btn" id="sl-preview">${t('Preview')}</button>
+      </div>
       <button type="button" class="sl-link" id="sl-save-plain">${t('Plain .gcode instead')}</button>
       <p class="sl-help">${t('Copy the file to a USB stick, plug it into the printer and start the print from its screen. Watch the first layer of every new kind of print.')}</p>
     </div>
@@ -328,6 +332,7 @@ async function slice() {
     result = { gcode, stats, objects, models, config, filament: filament(),
                name: safeName(models.length === 1 ? models[0].name : `${models[0].name}-and-${models.length - 1}-more`) };
     showResult();
+    preview();      // like a desktop slicer: the toolpaths as soon as they exist
   } catch (err) {
     if (id === jobId) fail(err.message || String(err));
   } finally {
@@ -350,6 +355,12 @@ const safeName = (s) => (s.normalize('NFKD').replace(/[^\w.-]+/g, '_').replace(/
 function hm(sec) {
   const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
   return h ? `${h} h ${m} min` : `${m} min`;
+}
+
+function preview() {
+  if (!result) return;
+  openPreview({ gcode: result.gcode, bed: printer.printer.bed, stats: el('sl-stats').textContent,
+    onSave: save, onSavePlain: savePlain });
 }
 
 function showResult() {
@@ -405,6 +416,7 @@ sel.bed.addEventListener('change', () => { remember(); invalidate(); });
 el('sl-go').addEventListener('click', slice);
 el('sl-cancel').addEventListener('click', cancel);
 el('sl-save').addEventListener('click', save);
+el('sl-preview').addEventListener('click', preview);
 el('sl-save-plain').addEventListener('click', savePlain);
 el('sl-addfins').addEventListener('click', () => { el('fins-toggle').click(); setTimeout(checkPlate, 400); });
 el('sl-arrange').addEventListener('click', async () => { await arrange(); invalidate(); checkPlate(); });

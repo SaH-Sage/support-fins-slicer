@@ -12,8 +12,13 @@ Everything else is Support Fins as it is: import, rotate, fins, plates, arrange.
 2. Click **Slice** (top bar). Pick the printer, quality, filament and build plate.
    The site's build volume, nozzle and layer height are set to match, and the fins
    rebuild for them: the grip tines must be exactly one layer tall.
-3. Click **Slice**, then **Save for USB stick**. Copy the `.gcode.3mf` file to the
-   stick, plug it into the printer and start the print from the printer's screen.
+3. Click **Slice**. The **preview** opens: the toolpaths layer by layer on the bed,
+   coloured by what each line is (walls, infill, top surface...). Drag the slider
+   (or use the arrow keys) to go through the layers; "Only this layer" and "Travel
+   moves" show one layer's paths and the moves between them. Check the fins came out
+   as walls under the overhangs.
+4. **Save for USB stick**. Copy the `.gcode.3mf` file to the stick, plug it into
+   the printer and start the print from the printer's screen.
 
 Each plate is sliced on its own (like "Slice plate" in Bambu Studio); several models
 on one plate are sliced together, each as its own object so the printer can skip one.
@@ -61,6 +66,8 @@ web/slicer/
   package.js      the .gcode.3mf (Bambu's sliced-3MF layout), stats from the G-code
   thumb.js        the plate picture the printer shows
   md5.js          the G-code checksum the 3MF carries
+  preview/        the slice preview: preview.js (viewer), gcode-parse.js + parse-worker.js
+                  (toolpaths from the G-code), lines/ (three.js r185 thick-line add-ons)
   printers/       one JSON per printer (built, don't edit by hand) + index.json
   engine/         the engine, downloaded (not in git)
 slicer/
@@ -120,4 +127,6 @@ releases, and `.gitignore`), so syncs merge cleanly.
 - The engine (OrcaSlicer/OrcaWeb) and the vendored OrcaSlicer profiles: AGPL-3.0,
   see `LICENSE-AGPL-3.0.txt`. The site serves the engine, so the combined site is
   offered under AGPL-3.0 terms; its complete source is this repository.
-- This fork's additions (`web/slicer/`, `slicer/`, `tests/slicer_*`): AGPL-3.0.
+- This fork's additions (`web/slicer/`, `slicer/`, `tests/slicer_*`): AGPL-3.0. The
+  preview's G-code parser is ported from the CraftBot-2-slicer project (AGPL-3.0);
+  `web/slicer/preview/lines/` are unmodified three.js files (MIT).
